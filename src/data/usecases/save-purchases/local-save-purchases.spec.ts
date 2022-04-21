@@ -7,7 +7,7 @@ class CacheStoreSpy implements CacheStore {
     insertCallsCount = 0;
     deleteKey: string;
     insertKey: string;
-    insertValues: Array<SavePurchases.Params> = []
+    insertValues: Array<SavePurchases.Params> = [];
 
     delete(key: string): void {
         this.deleteCallsCount++;
@@ -20,6 +20,13 @@ class CacheStoreSpy implements CacheStore {
         this.insertValues = value;
     }
 
+    simulateDeleteError(): void {
+        jest.spyOn(CacheStoreSpy.prototype, "delete").mockImplementationOnce(
+            () => {
+                throw new Error();
+            }
+        );
+    }
 }
 
 type SutTypes = {
@@ -42,12 +49,12 @@ const mockPurchases = (): Array<SavePurchases.Params> => [
     {
         id: "1",
         date: new Date(),
-        value: 31
+        value: 31,
     },
     {
         id: "2",
         date: new Date(),
-        value: 25
+        value: 25,
     },
 ];
 
@@ -67,9 +74,7 @@ describe("LocalSavePurchases", () => {
 
     test("Shouldn't insert new cache if delete fails", () => {
         const { cacheStore, sut } = makeSut();
-        jest.spyOn(cacheStore, "delete").mockImplementationOnce(() => {
-            throw new Error();
-        });
+        cacheStore.simulateDeleteError();
         const promise = sut.save(mockPurchases());
         expect(cacheStore.insertCallsCount).toBe(0);
         expect(promise).rejects.toThrow();
@@ -83,6 +88,6 @@ describe("LocalSavePurchases", () => {
         expect(cacheStore.deleteCallsCount).toBe(1);
         expect(cacheStore.insertCallsCount).toBe(1);
         expect(cacheStore.insertKey).toBe("purchases");
-        expect(cacheStore.insertValues).toEqual(purchases)
+        expect(cacheStore.insertValues).toEqual(purchases);
     });
 });
